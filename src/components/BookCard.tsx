@@ -1,64 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
+import StarRating from "./StarRating";
 import { Book } from "@/lib/types";
 
 interface BookCardProps {
   book: Book;
+  referralCode?: string;
 }
 
-export default function BookCard({ book }: BookCardProps) {
-  const router = useRouter();
-
-  async function handleDelete() {
-    if (!confirm(`¿Eliminar "${book.title}"? Esta acción no se puede deshacer.`))
-      return;
-    await fetch(`/api/books/${book.id}`, { method: "DELETE" });
-    router.refresh();
-  }
+export default function BookCard({ book, referralCode }: BookCardProps) {
+  const href = referralCode
+    ? `/libros/${book.slug}?ref=${referralCode}`
+    : `/libros/${book.slug}`;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
-      <div className="bg-amber-50 border-b border-amber-100 px-5 py-4">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            <h2 className="font-semibold text-gray-900 text-base leading-snug">
-              {book.title}
-            </h2>
-            <p className="text-xs text-amber-700 mt-0.5">{book.genre}</p>
-          </div>
-          <span className="shrink-0 text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">
-            {book.year}
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        background: "#141414",
+        border: "1px solid #2a2a2a",
+        textDecoration: "none",
+        color: "inherit",
+        transition: "border-color 0.2s",
+        overflow: "hidden",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.borderColor = "#c8a96e")}
+      onMouseLeave={(e) => (e.currentTarget.style.borderColor = "#2a2a2a")}
+    >
+      {/* Cover */}
+      <div style={{ position: "relative", aspectRatio: "2/3", background: "#0a0a0a" }}>
+        <Image
+          src={book.coverUrl}
+          alt={book.title}
+          fill
+          style={{ objectFit: "cover" }}
+          sizes="(max-width: 620px) 50vw, 300px"
+        />
+      </div>
+
+      {/* Info */}
+      <div style={{ padding: "1rem", flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+        <div style={{ fontSize: "0.7rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "#666" }}>
+          {book.genre}
+        </div>
+        <h3 style={{ fontSize: "0.95rem", color: "#e8e0d0", lineHeight: 1.3 }}>
+          {book.title}
+        </h3>
+        {book.subtitle && (
+          <p style={{ fontSize: "0.75rem", color: "#888", lineHeight: 1.4, fontStyle: "italic" }}>
+            {book.subtitle}
+          </p>
+        )}
+        {book.rating && (
+          <StarRating rating={book.rating} count={book.reviewCount} size="sm" />
+        )}
+        <div style={{ marginTop: "auto", paddingTop: "0.75rem", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "1.1rem", color: "#c8a96e" }}>
+            {book.price.toFixed(2)} €
+          </span>
+          <span style={{ fontSize: "0.7rem", color: "#888", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+            Ver libro →
           </span>
         </div>
       </div>
-
-      <div className="px-5 py-4 flex-1 flex flex-col gap-3">
-        {book.description && (
-          <p className="text-sm text-gray-600 leading-relaxed line-clamp-3">
-            {book.description}
-          </p>
-        )}
-        <p className="text-xs text-gray-400 font-mono mt-auto">
-          ISBN: {book.isbn}
-        </p>
-      </div>
-
-      <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex gap-2">
-        <Link
-          href={`/books/${book.id}/edit`}
-          className="flex-1 text-center bg-white border border-gray-300 hover:border-amber-400 hover:text-amber-700 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-        >
-          Editar
-        </Link>
-        <button
-          onClick={handleDelete}
-          className="flex-1 bg-white border border-gray-300 hover:border-red-400 hover:text-red-600 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-        >
-          Eliminar
-        </button>
-      </div>
-    </div>
+    </Link>
   );
 }
