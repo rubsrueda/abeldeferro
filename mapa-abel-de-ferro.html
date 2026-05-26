@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mapa — Plataforma Abel de Ferro</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f0f;
+    color: #e8e0d0;
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    padding: 32px 20px;
+    min-height: 100vh;
+  }
+  h1 {
+    text-align: center;
+    font-size: 18px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #c8a96e;
+    margin-bottom: 6px;
+    font-weight: normal;
+  }
+  .subtitle {
+    text-align: center;
+    color: #555;
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+    text-transform: uppercase;
+  }
+
+  .map {
+    max-width: 860px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  .node {
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px 16px;
+    min-width: 130px;
+    text-align: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .node:hover { border-color: #c8a96e; background: #1a1a1a; }
+  .node-title { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: #c8a96e; margin-bottom: 4px; }
+  .node-desc { font-size: 10px; color: #666; line-height: 1.6; font-style: italic; }
+
+  .node.root   { border-color: #c8a96e; background: #1a1500; min-width: 180px; }
+  .node.root .node-title { color: #e8c97e; font-size: 13px; }
+  .node.public { border-color: #2a4a2a; }
+  .node.public .node-title { color: #7ab87a; }
+  .node.auth   { border-color: #1a2a4a; }
+  .node.auth .node-title { color: #7a9ab8; }
+  .node.system { border-color: #2a2a2a; background: #111; }
+  .node.system .node-title { color: #555; font-size: 10px; }
+
+  .row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .arrow-down { text-align: center; color: #2a2a2a; font-size: 14px; height: 22px; line-height: 22px; }
+  .section-label { text-align: center; font-size: 9px; letter-spacing: 3px; text-transform: uppercase; color: #2e2e2e; margin: 4px 0; }
+
+  .merge-lines { display: flex; justify-content: center; width: 320px; height: 28px; }
+  .merge-lines svg { width: 100%; height: 100%; overflow: visible; }
+
+  .book-page {
+    border: 1px solid #3a3a5a;
+    border-radius: 6px;
+    background: #0e0e18;
+    padding: 14px 18px;
+    min-width: 340px;
+    text-align: center;
+  }
+  .book-page .node-title { color: #9a8adf; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+  .book-page-inner { display: flex; gap: 10px; justify-content: center; margin-top: 8px; }
+  .book-action { border: 1px solid #2a2a3a; border-radius: 3px; padding: 7px 12px; font-size: 10px; color: #777; font-style: italic; min-width: 90px; }
+  .book-action.buy   { border-color: #b87a5a; color: #b87a5a; }
+  .book-action.free  { border-color: #7ab87a; color: #7ab87a; }
+  .book-action.dl    { border-color: #7a9ab8; color: #7a9ab8; }
+
+  .reader-box {
+    border: 2px solid #6a4a8a;
+    border-radius: 6px;
+    background: #120e1a;
+    padding: 16px 24px;
+    min-width: 400px;
+    text-align: center;
+  }
+  .reader-box .node-title { color: #b89ad8; font-size: 13px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .reader-features { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
+  .feature-tag { border: 1px solid #3a2a5a; border-radius: 2px; padding: 4px 8px; font-size: 9px; color: #8a7aaa; letter-spacing: 1px; text-transform: uppercase; }
+
+  /* Stack bar */
+  .stack-bar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    max-width: 600px;
+    margin-top: 4px;
+  }
+  .stack-chip {
+    border: 1px solid #222;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #444;
+  }
+  .stack-chip.js     { border-color: #4a4a1a; color: #9a9a3a; }
+  .stack-chip.supa   { border-color: #1a3a2a; color: #3a9a6a; }
+  .stack-chip.stripe { border-color: #1a2a4a; color: #3a6aaa; }
+
+  .legend {
+    max-width: 860px;
+    margin: 40px auto 0;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    border-top: 1px solid #1e1e1e;
+    padding-top: 20px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 10px; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; border: 1px solid; }
+  .dot.public { border-color: #7ab87a; }
+  .dot.auth   { border-color: #7a9ab8; }
+  .dot.paid   { border-color: #b87a5a; }
+  .dot.core   { border-color: #9a7ac8; }
+</style>
+</head>
+<body>
+
+<h1>Abel de Ferro</h1>
+<div class="subtitle">Mapa de la plataforma — v3</div>
+
+<div class="map">
+
+  <!-- STACK -->
+  <div class="section-label" style="margin-bottom:8px;">stack técnico</div>
+  <div class="stack-bar" style="margin-bottom:28px;">
+    <div class="stack-chip js">HTML · CSS · JavaScript</div>
+    <div class="stack-chip supa">Supabase — Auth · DB · Storage</div>
+    <div class="stack-chip stripe">Stripe — Pagos</div>
+  </div>
+
+  <!-- HOME -->
+  <div class="row">
+    <div class="node root">
+      <div class="node-title">🌐 Home / Landing</div>
+      <div class="node-desc">Presentación del autor<br>Libros destacados · CTA</div>
+    </div>
+  </div>
+
+  <div class="arrow-down">↓</div>
+  <div class="section-label">navegación principal</div>
+
+  <div class="row">
+    <div class="node public">
+      <div class="node-title">👤 El Autor</div>
+      <div class="node-desc">Biografía · Filosofía<br>Contacto</div>
+    </div>
+    <div class="node public">
+      <div class="node-title">📚 Catálogo</div>
+      <div class="node-desc">Todos los libros<br>Filtros · Precios</div>
+    </div>
+    <div class="node auth">
+      <div class="node-title">🔐 Mi Cuenta</div>
+      <div class="node-desc">Login · Registro<br>Historial de compras<br><span style="color:#2a4a6a;font-size:9px;">Supabase Auth</span></div>
+    </div>
+    <div class="node auth">
+      <div class="node-title">📖 Mi Biblioteca</div>
+      <div class="node-desc">Comprados · Subidos<br>Progreso de lectura<br><span style="color:#2a4a6a;font-size:9px;">Supabase DB</span></div>
+    </div>
+  </div>
+
+  <!-- Merge lines -->
+  <div class="merge-lines">
+    <svg viewBox="0 0 320 28" preserveAspectRatio="none">
+      <line x1="90" y1="0" x2="160" y2="28" stroke="#2a2a2a" stroke-width="1"/>
+      <line x1="230" y1="0" x2="160" y2="28" stroke="#2a2a2a" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <div class="section-label">catálogo y biblioteca llegan aquí</div>
+
+  <!-- PÁGINA DEL LIBRO -->
+  <div class="book-page">
+    <div class="node-title">📗 Página del Libro</div>
+    <div class="node-desc">Portada · Sinopsis · Reseñas · Formatos · Precio</div>
+    <div class="book-page-inner">
+      <div class="book-action free">Preview<br><span style="font-size:9px;color:#444;">sin login</span></div>
+      <div class="book-action buy">Comprar<br><span style="font-size:9px;color:#444;">Stripe Checkout</span></div>
+      <div class="book-action dl">Descargar<br><span style="font-size:9px;color:#444;">Supabase Storage</span></div>
+    </div>
+  </div>
+
+  <div class="arrow-down">↓</div>
+  <div class="section-label">una sola experiencia de lectura</div>
+
+  <!-- LECTOR UNIFICADO -->
+  <div class="reader-box">
+    <div class="node-title">🖥 Lector Unificado</div>
+    <div class="node-desc">Texto + audio integrado · Libros del catálogo y libros propios subidos</div>
+    <div class="reader-features">
+      <div class="feature-tag">ePub · PDF · Texto subido</div>
+      <div class="feature-tag">▶ Audio sincronizado</div>
+      <div class="feature-tag">Modo noche</div>
+      <div class="feature-tag">Tamaño de fuente</div>
+      <div class="feature-tag">Progreso guardado</div>
+      <div class="feature-tag">Paywall en preview</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="dot public"></div> Público — sin login</div>
+  <div class="legend-item"><div class="dot auth"></div> Requiere login (Supabase)</div>
+  <div class="legend-item"><div class="dot paid"></div> Requiere compra (Stripe)</div>
+  <div class="legend-item"><div class="dot core"></div> Lector unificado</div>
+</div>
+
+</body>
+</html>
